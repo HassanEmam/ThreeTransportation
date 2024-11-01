@@ -1,13 +1,15 @@
 import * as THREE from "three";
+// import Bezier from "bezier-js";
 import Utils from "./utils/Utils";
+import Road from "./Road";
 
 export default class RoadNetwork {
   constructor(scene) {
     this.scene = scene;
     this.points = [];
     this.roads = [];
-    this.graph = {};
-    this.maxRoads = 1000; // Limit road count
+    this.graph = new Map();
+    this.maxRoads = 1000;
     this.plane = this.createGroundPlane();
   }
 
@@ -26,16 +28,16 @@ export default class RoadNetwork {
   }
 
   addPoint(point) {
-    if (this.points.length >= this.maxRoads) return; // Limit number of points
+    if (this.points.length >= this.maxRoads) return;
     this.points.push(point);
     this.addGraphNode(point);
-
     if (this.points.length > 1) {
       const start = this.points[this.points.length - 2];
       const end = this.points[this.points.length - 1];
-      this.drawRoad(start, end);
+      const road = new Road(this.scene, start, end);
+      road.drawRoad();
+      this.roads.push(road);
       this.addGraphEdge(start, end);
-      this.roads.push({ start, end });
     }
   }
 
@@ -51,24 +53,6 @@ export default class RoadNetwork {
       this.graph[startKey].push(endKey);
     if (!this.graph[endKey].includes(startKey))
       this.graph[endKey].push(startKey);
-  }
-
-  drawRoad(start, end, width = 5) {
-    const roadWidth = width;
-    const roadLength = start.distanceTo(end);
-    const roadGeometry = new THREE.PlaneGeometry(roadWidth, roadLength);
-    roadGeometry.rotateX(-Math.PI / 2);
-
-    const roadMaterial = new THREE.MeshLambertMaterial({
-      color: 0x333333,
-      side: THREE.DoubleSide,
-    });
-    const roadMesh = new THREE.Mesh(roadGeometry, roadMaterial);
-    roadMesh.position.copy(start.clone().add(end).divideScalar(2));
-    roadMesh.position.y += 0.01;
-    roadMesh.lookAt(end);
-    this.scene.add(roadMesh);
-    this.addRoadMarkings(start, end, roadWidth);
   }
 
   addRoadMarkings(start, end, roadWidth) {
